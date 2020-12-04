@@ -5,7 +5,7 @@ import numpy as np
 
 class CloRouting(BASE_routing):
 
-    def relay_selection(self, opt_neighbors):
+    def relay_selection(self, opt_neighbors, pkd):
         """
         This routing is going to select as relay the next drone which is closest to me.
 

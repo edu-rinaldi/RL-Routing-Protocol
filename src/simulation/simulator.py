@@ -67,6 +67,7 @@ class Simulator:
         self.show_plot = show_plot
         self.routing_algorithm = routing_algorithm
         self.communication_error_type = communication_error_type
+        self.restart_mission = set()
 
         # --------------- cell for drones -------------
         self.prob_size_cell_r = prob_size_cell_r
@@ -101,6 +102,7 @@ class Simulator:
         self.metrics.info_mission()
 
     def __set_random_generators(self):
+        self.drone_capabilities = utilities.DroneCapabilities(self)
         if self.seed is not None:
             self.rnd_network = np.random.RandomState(self.seed)
             self.rnd_routing = np.random.RandomState(self.seed)
@@ -121,7 +123,8 @@ class Simulator:
 
         # drone 0 is the first
         for i in range(self.n_drones):
-            self.drones.append(Drone(i, self.path_manager.path(i, self), self.depot, self))
+            self.drones.append(Drone(i, self.path_manager.path(i, self), self.drone_capabilities.speed[i],
+                                    self.drone_capabilities.network_suc_rate[i], self.depot, self))
 
         self.environment.add_drones(self.drones)
         self.environment.add_depot(self.depot)
@@ -215,6 +218,8 @@ class Simulator:
                 drone.routing(self.drones, self.depot, cur_step)
                 drone.move(self.time_step_duration)
 
+            if len(self.restart_mission) == len(self.drones) and self.drones[0].coords != self.depot_coordinates:
+                self.restart_mission = set()
             # in case we need probability map
             if config.ENABLE_PROBABILITIES:
                 self.increase_meetings_probs(self.drones, cur_step)
@@ -233,7 +238,8 @@ class Simulator:
     def close(self):
         """ do some stuff at the end of simulation"""
         print("Closing simulation")
-
+        if self.routing_algorithm.name == "AI":
+            self.drones[0].routing_algorithm.print()
         self.print_metrics(plot_id="final")
         self.save_metrics(config.ROOT_EVALUATION_DATA + self.simulation_name)
 

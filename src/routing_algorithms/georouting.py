@@ -8,13 +8,13 @@ class GeoRouting(BASE_routing):
     def __init__(self, drone, simulator):
         BASE_routing.__init__(self, drone, simulator)
 
-    def relay_selection(self, opt_neighbors):
+    def relay_selection(self, opt_neighbors, pkd):
         """ arg min score  -> geographical approach, take the drone closest to the depot """
         best_drone_distance_from_depot = util.euclidean_distance(self.simulator.depot.coords, self.drone.coords)
         best_drone = None
 
         for hpk, drone_istance in opt_neighbors:
-            exp_position = self.__estimated_neighbor_drone_position(hpk)
+            exp_position = hpk.cur_pos  # without estimation, a simple geographic approach
             exp_distance = util.euclidean_distance(exp_position, self.simulator.depot.coords)
             if exp_distance < best_drone_distance_from_depot:
                 best_drone_distance_from_depot = exp_distance

@@ -12,7 +12,31 @@ import numpy as np
 import pickle
 from ast import literal_eval as make_tuple
 from src.utilities import random_waypoint_generation
+from scipy.special import softmax
 
+class DroneCapabilities():
+
+    def __init__(self, simulator):
+        """ The class craete personalized features for each drone """
+        self.simulator = simulator
+        self.device_rnd = np.random.RandomState(self.simulator.seed + 1)
+        self.network_suc_rate = {}   # drone_id : success_rate
+        self.speed = {}  # drone_id : speed of the drone
+        self.__compute()
+
+    def __compute(self):
+        for i in range(self.simulator.n_drones):
+            self.speed[i] = self.device_rnd.randint(self.simulator.drone_speed - int(self.simulator.drone_speed) / 2,
+                                                    self.simulator.drone_speed + int(self.simulator.drone_speed / 4))
+            self.network_suc_rate[i] = self.device_rnd.randint(50, 100) / 100
+
+        self.speed[0] = self.simulator.drone_speed
+        self.network_suc_rate[0] = 1.0
+
+        self.speed[1] = self.simulator.drone_speed / 1.3
+
+        #print(self.speed)
+        #print(self.network_suc_rate)
 
 def compute_circle_path(radius : int, center : tuple) -> list:
     """ compute a set of finite coordinates to simulate a circle trajectory of input radius around a given center
@@ -79,10 +103,12 @@ class EventGenerator:
         :param drones: the drones where to sample the event
         :return: nothing
         """
-        if cur_step % self.simulator.event_generation_delay == 0:  # if it's time to generate a new packet
+        if cur_step % self.simulator.event_generation_delay == 0 \
+                and self.simulator.drones[0].coords != self.simulator.depot_coordinates:  # if it's time to generate a new packet
             # drone that will receive the packet:
-            drone_index = self.rnd_drones.randint(0, len(drones))
-            drone = drones[drone_index]
+            #drone_index = self.rnd_drones.randint(0, len(drones))
+
+            drone = drones[0]
             drone.feel_event(cur_step)
 
 # ------------------ Path manager ----------------------
