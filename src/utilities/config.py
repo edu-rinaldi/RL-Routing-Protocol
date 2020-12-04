@@ -48,13 +48,13 @@ SKIP_SIM_STEP = 30     # int: steps, plot the simulation every 'RENDERING_STEP' 
 DRAW_SIZE = 700       # int: size of the drawing window.
 IS_SHOW_NEXT_TARGET_VEC = True  # bool : whether show the direction and next target of the drone
 
-SAVE_PLOT = True  # bool: whether to save the plots of the simulation or not.
+SAVE_PLOT = False  # bool: whether to save the plots of the simulation or not.
 SAVE_PLOT_DIR = "data/plots/"
 
 
 # add constants here...
 # ----------------------------- SIMULATION PARAMS. ---------------------------- #
-SIM_DURATION = 150000   # int: steps of simulation. # ***
+SIM_DURATION = 15000 # int: steps of simulation. # ***
 TS_DURATION = 0.150   # float: seconds duration of a step in seconds.
 SEED = 8          # int: seed of this simulation.
 
