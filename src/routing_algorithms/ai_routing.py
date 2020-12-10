@@ -16,8 +16,12 @@ class AIRouting(BASE_routing):
         self.q_table = self.rnd_for_routing_ai.uniform(low=-2, high=0, size=[len(self.drone.path), self.simulator.n_drones])
         
         self.epsilon = 0.3
-        self.alpha = 0.1
-        self.gamma = 0.05
+        self.alpha = 0.2
+        self.gamma = 0.45
+
+        self.r_sum = 0
+        self.timestep = 0
+        self.r_avg = []
 
         self.old_state = None
         self.old_action = None
@@ -48,6 +52,11 @@ class AIRouting(BASE_routing):
             self.old_action = action
             # reward
             self.old_reward = self.get_reward(outcome, delay)
+            self.r_sum += self.old_reward
+            self.timestep += 1
+            self.r_avg += [self.r_sum/self.timestep]
+            
+
             
             # update using the old state and the selected action at that time
             # self.q_table[(state, ) + (action, )] += self.alpha * (reward + self.gamma * self.q_table[(new_state, ) + (new_action, )])
@@ -55,8 +64,8 @@ class AIRouting(BASE_routing):
 
     def get_reward(self, outcome, delay):
         if outcome == -1:
-            return -200
-        return 20 * (1 - delay/self.simulator.event_duration)
+            return -2
+        return 2 * (1 - delay/self.simulator.event_duration)
 
     def get_state(self):
         return self.drone.path.index(self.drone.next_target())
@@ -101,4 +110,7 @@ class AIRouting(BASE_routing):
             This method is called at the end of the simulation, can be usefull to print some
                 metrics about the learning process
         """
-        pass
+        steps = np.arange(self.timestep)
+        plt.plot(steps, self.r_avg)
+        plt.ylabel("avg rewards")
+        plt.show()
