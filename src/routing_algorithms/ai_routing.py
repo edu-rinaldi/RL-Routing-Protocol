@@ -14,7 +14,6 @@ class AIRouting(BASE_routing):
 
         # Q-Table
         self.q_table = self.rnd_for_routing_ai.uniform(low=-2, high=0, size=[len(self.drone.path), self.simulator.n_drones])
-        
         self.epsilon = 0.3
         self.alpha = 0.2
         self.gamma = 0.45
@@ -34,7 +33,7 @@ class AIRouting(BASE_routing):
 
         # outcome == -1 if the packet/event expired; 0 if the packets has been delivered to the depot
         # Feedback from a delivered or expired packet
-        print(drone, id_event, delay, outcome, self.get_reward(outcome, delay))
+        # print(drone, id_event, delay, outcome, self.get_reward(outcome, delay))
 
 
         # remove the entry, the action has received the feedback
@@ -56,7 +55,6 @@ class AIRouting(BASE_routing):
             self.timestep += 1
             self.r_avg += [self.r_sum/self.timestep]
             
-
             
             # update using the old state and the selected action at that time
             # self.q_table[(state, ) + (action, )] += self.alpha * (reward + self.gamma * self.q_table[(new_state, ) + (new_action, )])
@@ -78,8 +76,6 @@ class AIRouting(BASE_routing):
             if self.q_table[(state, ) + (idx_drone, )] > max_score:
                 max_drone = drone
                 max_score = self.q_table[(state, ) + (idx_drone, )]
-        # if max_drone.identifier == 5:
-        #     print(state, available_drones, self.q_table[state])
         return max_drone.identifier, max_drone
 
 
@@ -103,7 +99,33 @@ class AIRouting(BASE_routing):
         if self.rnd_for_routing_ai.rand() < self.epsilon:
             return self.rnd_for_routing_ai.choice(available_drones)
 
-        return best_drone if best_drone.identifier != 0 else None
+        return best_drone
+
+    def __get_path_size(self):
+        total = 0
+        for i in range(len(self.drone.path)-1):
+            p1 = self.drone.path[i]
+            p2 = self.drone.path[i+1]
+            total += util.euclidean_distance(p1, p2)
+        return total
+
+    def __get_path_size_point(self, point):
+        total = 0
+        f = False
+        for i in range(len(self.drone.path)-1):
+            p1 = self.drone.path[i]
+            p2 = self.drone.path[i+1]
+            if f: break
+            if p2 == point: f= True
+
+            total += util.euclidean_distance(p1, p2)
+        return total
+
+    def __get_curr_pos_percentage(self):
+        total = self.__get_path_size()
+        # print(self.drone.next_target(), self.__get_path_size_point(self.drone.next_target()), self.drone.path)
+        d = self.__get_path_size_point(self.drone.next_target()) - np.abs(util.euclidean_distance(self.drone.coords, self.drone.next_target()))
+        return d/total
 
     def print(self):
         """
