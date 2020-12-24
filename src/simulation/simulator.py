@@ -238,7 +238,7 @@ class Simulator:
     def close(self):
         """ do some stuff at the end of simulation"""
         print("Closing simulation")
-        if self.routing_algorithm.name == "AI":
+        if self.routing_algorithm.name in ["AI", "EPB", "GPB", "ENT", "GNT"]:
             self.drones[0].routing_algorithm.print()
         self.print_metrics(plot_id="final")
         self.save_metrics(config.ROOT_EVALUATION_DATA + self.simulation_name)

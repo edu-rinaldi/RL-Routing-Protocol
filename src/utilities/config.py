@@ -2,7 +2,7 @@
 from src.routing_algorithms.georouting import GeoRouting
 from src.routing_algorithms.random_routing import RandomRouting
 from src.routing_algorithms.closeset_to_me_routing import CloRouting
-from src.routing_algorithms.ai_routing import AIRouting
+from src.routing_algorithms.ai_routing import AIRouting, EGreedyNextTargetRouting, EGreedyPositionBasedRouting, GeoNextTargetRouting, GeoPositionBasedRouting
 
 from enum import Enum
 
@@ -54,7 +54,7 @@ SAVE_PLOT_DIR = "data/plots/"
 
 # add constants here...
 # ----------------------------- SIMULATION PARAMS. ---------------------------- #
-SIM_DURATION = 275000 # int: steps of simulation. # ***
+SIM_DURATION = 300000 # int: steps of simulation. # ***
 TS_DURATION = 0.150   # float: seconds duration of a step in seconds.
 SEED = 8          # int: seed of this simulation.
 
@@ -88,6 +88,10 @@ class RoutingAlgorithm(Enum):
     RND = RandomRouting
     CLO = CloRouting
     AI = AIRouting
+    ENT = EGreedyNextTargetRouting
+    EPB = EGreedyPositionBasedRouting
+    GNT = GeoNextTargetRouting
+    GPB = GeoPositionBasedRouting
 
     @staticmethod
     def keylist():

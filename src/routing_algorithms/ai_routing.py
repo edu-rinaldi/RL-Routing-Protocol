@@ -6,21 +6,27 @@ from src.routing_algorithms.BASE_routing import BASE_routing
 from matplotlib import pyplot as plt
 
 class AIRouting(BASE_routing):
-    def __init__(self, drone, simulator, method='drone_path'):
+    def __init__(self, drone, simulator, method='pos_perc', asm='egreedy'):
+        """
+            method:                         Position Based: 'pos_perc'   OR      Next Target Based: 'drone_path'
+            asm (action selection method):  Epsilon Greedy: 'egreedy'    OR      Geo Epsilon Greedy: 'geo_egreedy'
+        """
         BASE_routing.__init__(self, drone, simulator)
         # random generator
         self.rnd_for_routing_ai = np.random.RandomState(self.simulator.seed)
         self.taken_actions = {}  #id event : (old_state, old_action)
 
         # method for state representation
-        # method = 'pos_perc'
         self.method = method
+
+        # action selection method
+        self.asm = asm
 
         # Q-Table
         if method == 'drone_path':
             self.q_table = self.rnd_for_routing_ai.uniform(low=-2, high=0, size=[len(self.drone.path), self.simulator.n_drones])
         elif method == 'pos_perc':
-            self.pos_precision = 25
+            self.pos_precision = 20
             self.q_table = self.rnd_for_routing_ai.uniform(low=-2, high=0, size=[self.pos_precision, self.simulator.n_drones])
         self.epsilon = 0.08
         self.alpha = 0.2
@@ -63,9 +69,6 @@ class AIRouting(BASE_routing):
             self.timestep += 1
             self.r_avg += [self.r_sum/self.timestep]
             
-            
-            # update using the old state and the selected action at that time
-            # do something or train the model (?)
 
     def get_reward(self, outcome, delay):
         if outcome == -1:
@@ -109,12 +112,32 @@ class AIRouting(BASE_routing):
         self.taken_actions[pkd.event_ref.identifier] = (state, action)
         
         if self.rnd_for_routing_ai.rand() < self.epsilon:
-            return self.rnd_for_routing_ai.choice(available_drones)
+            if self.asm == 'geo_egreedy':
+                # geo epsilon greedy action selection method
+
+                # init best drone distance with distance between drone0 and the depot
+                best_drone_distance = util.euclidean_distance(self.simulator.depot.coords, self.drone.coords)
+                best_drone = self.drone
+
+                for hpk, drone_ist in opt_neighbors:
+                    # calc expected position of the neighbor
+                    expected_pos = self.__estimated_neighbor_drone_position(hpk)
+                    # calc the expected distance from the depot 
+                    expected_dist = util.euclidean_distance(expected_pos, self.simulator.depot.coords)
+                    # get the drone with distance which is minimum
+                    if expected_dist < best_drone_distance:
+                        best_drone_distance = expected_dist
+                        best_drone = drone_ist
+                return best_drone
+            else:
+                # epsilon greedy
+                return self.rnd_for_routing_ai.choice(available_drones)
         
         return best_drone
 
     def __get_path_size(self):
         total = 0
+        # sum each distance and get the toal distance that the drone must do
         for i in range(len(self.drone.path)-1):
             p1 = self.drone.path[i]
             p2 = self.drone.path[i+1]
@@ -124,6 +147,7 @@ class AIRouting(BASE_routing):
     def __get_path_size_point(self, point):
         total = 0
         f = False
+        # sum each distance until the next point is the target one
         for i in range(len(self.drone.path)-1):
             p1 = self.drone.path[i]
             p2 = self.drone.path[i+1]
@@ -138,6 +162,31 @@ class AIRouting(BASE_routing):
         d = self.__get_path_size_point(self.drone.next_target()) - np.abs(util.euclidean_distance(self.drone.coords, self.drone.next_target()))
         return d/total
 
+    def __estimated_neighbor_drone_position(self, hello_message):
+        """ estimate the current position of the drone """
+
+        # get known info about the neighbor drone
+        hello_message_time = hello_message.time_step_creation
+        known_position = hello_message.cur_pos
+        known_speed = hello_message.speed
+        known_next_target = hello_message.next_target
+
+        # compute the time elapsed since the message sent and now
+        # elapsed_time in seconds = elapsed_time in steps * step_duration_in_seconds
+        elapsed_time = (self.simulator.cur_step - hello_message_time) * self.simulator.time_step_duration  # seconds
+
+        # distance traveled by drone
+        distance_traveled = elapsed_time * known_speed
+
+        # direction vector
+        a, b = np.asarray(known_position), np.asarray(known_next_target)
+        v_ = (b - a) / np.linalg.norm(b - a)
+
+        # compute the expect position
+        c = a + (distance_traveled * v_)
+
+        return tuple(c)
+
     def print(self):
         """
             This method is called at the end of the simulation, can be usefull to print some
@@ -147,3 +196,24 @@ class AIRouting(BASE_routing):
         plt.plot(steps, self.r_avg)
         plt.ylabel("avg rewards")
         plt.show()
+
+
+# ENT
+class EGreedyNextTargetRouting(AIRouting):
+    def __init__(self, drone, simulator):
+        AIRouting.__init__(self, drone, simulator, 'drone_path', 'egreedy')
+
+#GNT
+class GeoNextTargetRouting(AIRouting):
+    def __init__(self, drone, simulator):
+        AIRouting.__init__(self, drone, simulator, 'drone_path', 'geo_egreedy')
+
+#EPB
+class EGreedyPositionBasedRouting(AIRouting):
+    def __init__(self, drone, simulator):
+        AIRouting.__init__(self, drone, simulator, 'pos_perc', 'egreedy')
+
+#GPB
+class GeoPositionBasedRouting(AIRouting):
+    def __init__(self, drone, simulator):
+        AIRouting.__init__(self, drone, simulator, 'pos_perc', 'geo_egreedy')
